@@ -1,0 +1,7 @@
+PACKAGE_NAME="hwlogo"
+PACKAGE_VERSION="@VERSION@"
+BUILT_MODULE_NAME[0]="hwlogo"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
+MAKE[0]="make KDIR=/lib/modules/${kernelver}/build"
+CLEAN="make clean"
+AUTOINSTALL="yes"

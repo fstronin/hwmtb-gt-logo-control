@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+
+# DKMS_VERSION is substituted at build time from debian/changelog
+DKMS_NAME=hwlogo
+DKMS_VERSION=@VERSION@
+
+case "$1" in
+remove|upgrade|deconfigure)
+	# unload first: "dkms remove" deletes the .ko file, after which
+	# modprobe -r can no longer resolve the module name
+	rmmod "$DKMS_NAME" 2>/dev/null || true
+
+	if [ -n "$(dkms status -m "$DKMS_NAME" -v "$DKMS_VERSION" 2>/dev/null)" ]; then
+		dkms remove -m "$DKMS_NAME" -v "$DKMS_VERSION" --all || true
+	fi
+
+	# do not leave a stray LED device behind on a failed unload
+	if lsmod | grep -q "^$DKMS_NAME "; then
+		echo "hwlogo: WARNING: module still loaded, it will disappear on reboot" >&2
+	fi
+	;;
+failed-upgrade)
+	;;
+*)
+	echo "hwlogo prerm called with unknown argument '$1'" >&2
+	exit 1
+	;;
+esac
+
+exit 0

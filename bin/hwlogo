@@ -1,0 +1,27 @@
+#!/bin/bash
+# hwlogo - switch the HUAWEI lid logo light on/off.
+#
+#   hwlogo on|off|toggle|status
+#
+# Talks to /sys/class/leds/huawei::logo (kernel module hwlogo), so no root
+# privileges are needed once the udev rule shipped by the package is active.
+set -u
+LED=/sys/class/leds/huawei::logo
+BR=$LED/brightness
+
+if [ ! -e "$BR" ]; then
+	echo "hwlogo: $BR is missing - is the hwlogo module loaded?" >&2
+	exit 1
+fi
+
+case "${1:-}" in
+on)     echo 1 > "$BR" ;;
+off)    echo 0 > "$BR" ;;
+toggle)	read -r cur < "$BR"
+	if [ "$cur" = "0" ]; then echo 1 > "$BR"; else echo 0 > "$BR"; fi ;;
+status)	read -r cur < "$BR"
+	if [ "$cur" = "0" ]; then st=off; else st=on; fi
+	echo "Logo light: $st (brightness=$cur)"
+	[ -r "$LED/ec" ] && cat "$LED/ec" ;;
+*)	echo "usage: hwlogo on|off|toggle|status" >&2; exit 2 ;;
+esac

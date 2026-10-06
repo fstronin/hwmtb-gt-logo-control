@@ -1,0 +1,24 @@
+Source: hwlogo
+Section: kernel
+Priority: optional
+Maintainer: Yegor Chuperka <yegor-chuperka@yandex.ru>
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/fstronin/hwmtb-gt-logo-control
+
+Package: hwlogo
+Architecture: all
+Depends: dkms (>= 2.8), kmod
+Suggests: acpi-call-dkms
+Description: HUAWEI MateBook lid "logo light" control (DKMS module)
+ Controls the illuminated HUAWEI wordmark on the lid of the MateBook GT 14
+ (ENZH-XX) and compatible models by driving the embedded controller through
+ the firmware's own ACPI method \_SB.PC00.LPCB.HWEC.ECCD (the same path the
+ vendor's Windows PC Manager uses).
+ .
+ The DKMS module exposes a standard LED class device
+ /sys/class/leds/huawei::logo, a hwlogo(1) command line tool, and an optional
+ systemd unit that re-applies the state at boot.
+ .
+ Secure Boot is not affected: the module is signed automatically with the
+ machine's enrolled MOK key by DKMS.

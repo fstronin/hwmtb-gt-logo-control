@@ -1,0 +1,51 @@
+#!/usr/bin/make -f
+#
+# Hand written rules file (no debhelper).  The module itself is compiled by
+# DKMS on the target machine; this package ships sources, CLI, udev rule and
+# systemd unit.  The version comes from debian/changelog (single source of
+# truth) and is substituted into dkms.conf and the maintainer scripts.
+#
+PKG     := hwlogo
+VERSION := $(shell dpkg-parsechangelog -S Version)
+DEST    := debian/$(PKG)
+DOC     := $(DEST)/usr/share/doc/$(PKG)
+
+build:
+	@echo "nothing to compile: DKMS builds the module at install time (version $(VERSION))"
+
+install: build
+	install -d $(DEST)/usr/src/$(PKG)-$(VERSION)
+	install -m 0644 src/hwlogo.c src/Makefile $(DEST)/usr/src/$(PKG)-$(VERSION)/
+	sed 's/@VERSION@/$(VERSION)/' src/dkms.conf.in > $(DEST)/usr/src/$(PKG)-$(VERSION)/dkms.conf
+	chmod 0644 $(DEST)/usr/src/$(PKG)-$(VERSION)/dkms.conf
+	install -d $(DEST)/usr/bin
+	install -m 0755 bin/hwlogo $(DEST)/usr/bin/hwlogo
+	install -d $(DEST)/usr/lib/udev/rules.d
+	install -m 0644 src/90-hwlogo.rules $(DEST)/usr/lib/udev/rules.d/90-hwlogo.rules
+	install -d $(DEST)/usr/lib/systemd/system
+	install -m 0644 units/hwlogo-restore.service $(DEST)/usr/lib/systemd/system/
+	install -d $(DEST)/usr/lib/$(PKG)
+	install -m 0755 tools/hwec-call tools/find_logo.sh $(DEST)/usr/lib/$(PKG)/
+	install -d $(DEST)/etc/modules-load.d
+	install -m 0644 etc/modules-load.d/hwlogo.conf $(DEST)/etc/modules-load.d/
+	install -d $(DOC)
+	install -m 0644 README.md $(DOC)/README.md
+	install -m 0644 debian/copyright $(DOC)/copyright
+
+binary-indep: install
+	install -d $(DEST)/DEBIAN
+	for s in postinst prerm postrm; do \
+		sed 's/@VERSION@/$(VERSION)/' debian/$$s.in > $(DEST)/DEBIAN/$$s; \
+		chmod 0755 $(DEST)/DEBIAN/$$s; \
+	done
+	dpkg-gencontrol -p$(PKG) -P$(DEST) -Tdebian/$(PKG).substvars
+	(cd $(DEST) && find . -type f ! -path './DEBIAN/*' -printf '%P\n' \
+		| LC_ALL=C sort | xargs md5sum > DEBIAN/md5sums)
+	dpkg-deb --root-owner-group --build $(DEST) ..
+
+binary: binary-indep
+
+clean:
+	rm -rf $(DEST) debian/files debian/$(PKG).substvars
+
+.PHONY: build install binary binary-indep clean

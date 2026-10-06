@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+DKMS_NAME=hwlogo
+
+case "$1" in
+purge)
+	# left over DKMS state; /usr/src/$NAME-* and the built modules are
+	# removed by the package manager and by prerm/dkms itself
+	rm -rf "/var/lib/dkms/$DKMS_NAME"
+	if command -v udevadm >/dev/null 2>&1; then
+		udevadm control --reload-rules || true
+	fi
+	;;
+remove|upgrade|disappear|failed-upgrade|abort-install|abort-upgrade)
+	;;
+*)
+	echo "hwlogo postrm called with unknown argument '$1'" >&2
+	exit 1
+	;;
+esac
+
+exit 0

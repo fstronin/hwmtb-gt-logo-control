@@ -1,0 +1,16 @@
+# build artefacts
+debian/hwlogo/
+debian/files
+debian/*.substvars
+*.deb
+*.buildinfo
+*.changes
+
+# kernel module build leftovers (if built in-tree)
+*.ko
+*.o
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order

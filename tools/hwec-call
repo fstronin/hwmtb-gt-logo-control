@@ -1,0 +1,30 @@
+#!/bin/bash
+# hwec-call - small helpers around acpi_call for the HUAWEI EC mailbox.
+#
+#   hwec-call rd <off>              read one EC register
+#   hwec-call wr <off> <byte>       write one EC register
+#   hwec-call xfer <cmd> <off> <len> <hexbytes>
+#
+# Needs write access to /proc/acpi/call (root, or the file made writable for
+# the invoking user).
+set -u
+CALL='\_SB.PC00.LPCB.HWEC.ECCD'
+PROC=/proc/acpi/call
+
+run() { printf '%s' "$1" > "$PROC" || { echo "cannot write $PROC" >&2; exit 1; }; tr -d '\n ' < "$PROC"; echo; }
+
+case "${1:-}" in
+rd)
+	run "$CALL 0x02 $(printf '0x%02x' "$2") 0x00 {0x00} 0x100"
+	;;
+wr)
+	run "$CALL 0x02 $(printf '0x%02x' "$2") 0x01 b$(printf '%02x' "$3") 0x100"
+	;;
+xfer)
+	run "$CALL $(printf '0x%02x' "$2") $(printf '0x%02x' "$3") $(printf '0x%02x' "$4") b$5 0x100"
+	;;
+*)
+	sed -n '2,12p' "$0"
+	exit 2
+	;;
+esac

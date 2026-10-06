@@ -1,0 +1,11 @@
+[Unit]
+Description=HUAWEI lid logo light state
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/hwlogo on
+
+[Install]
+WantedBy=multi-user.target

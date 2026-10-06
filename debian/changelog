@@ -1,0 +1,41 @@
+hwlogo (1.0.3) unstable; urgency=medium
+
+  * Metadata only: the maintainer/author identity is now the real one
+    (Yegor Chuperka <yegor-chuperka@yandex.ru>) in debian/control, debian/copyright,
+    debian/changelog and MODULE_AUTHOR.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 02:00:00 +0200
+
+hwlogo (1.0.2) unstable; urgency=medium
+
+  * Correct the license to GPL-2.0 (kernel module, plain GPL-2.0, no
+    "or later"); ship the full license text as LICENSE in the source tree.
+  * Documentation: English README as the package doc, Russian discovery notes
+    moved to docs/README.ru.md.
+  * All code comments and user visible strings are English now.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 01:45:00 +0200
+
+hwlogo (1.0.1) unstable; urgency=medium
+
+  * Keep the hardware state on module unload: set LED_RETAIN_AT_SHUTDOWN so
+    the LED core does not switch the logo light off while unregistering
+    (affects package upgrade and purge).
+  * prerm: unload the module before "dkms remove" - after the .ko is gone,
+    modprobe -r can no longer resolve the module name.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 01:33:00 +0200
+
+hwlogo (1.0.0) unstable; urgency=medium
+
+  * Initial release.
+  * DKMS module exposing /sys/class/leds/huawei::logo for the HUAWEI
+    MateBook GT 14 (ENZH-XX) lid logo light.  Talks to the embedded
+    controller through the firmware method \_SB.PC00.LPCB.HWEC.ECCD
+    (EC registers 0xA4 state / 0xA5 control).
+  * hwlogo(1) command line tool, udev rule for group plugdev access and an
+    optional systemd unit re-applying the state at boot.
+  * Module is signed with the machine's enrolled MOK key by DKMS, so it
+    loads with Secure Boot enabled.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 01:24:44 +0200
