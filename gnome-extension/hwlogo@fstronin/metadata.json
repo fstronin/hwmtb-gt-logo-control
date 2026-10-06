@@ -1,0 +1,8 @@
+{
+  "uuid": "hwlogo@fstronin",
+  "name": "HUAWEI Lid Logo Light",
+  "description": "Toggle the illuminated HUAWEI logo on the lid of the MateBook GT 14 from the Quick Settings menu (adds a tile and a panel indicator when the light is on). Talks to /sys/class/leds/huawei::logo, provided by the hwlogo DKMS package.",
+  "shell-version": ["50"],
+  "version": 1,
+  "url": "https://github.com/fstronin/hwmtb-gt-logo-control"
+}

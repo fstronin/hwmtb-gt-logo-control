@@ -24,6 +24,15 @@ install: build
 	install -m 0644 src/90-hwlogo.rules $(DEST)/usr/lib/udev/rules.d/90-hwlogo.rules
 	install -d $(DEST)/usr/lib/systemd/system
 	install -m 0644 units/hwlogo-restore.service $(DEST)/usr/lib/systemd/system/
+	install -d $(DEST)/usr/share/gnome-shell/extensions/hwlogo@fstronin
+	install -m 0644 gnome-extension/hwlogo@fstronin/metadata.json \
+		gnome-extension/hwlogo@fstronin/extension.js \
+		$(DEST)/usr/share/gnome-shell/extensions/hwlogo@fstronin/
+	# the extension asks for the icon by name, so it has to live in an icon
+	# theme search path (St.IconTheme has no get_default() since GNOME 50)
+	install -d $(DEST)/usr/share/icons/hicolor/symbolic/apps
+	install -m 0644 gnome-extension/hwlogo@fstronin/icons/hwlogo-symbolic.svg \
+		$(DEST)/usr/share/icons/hicolor/symbolic/apps/
 	install -d $(DEST)/usr/lib/$(PKG)
 	install -m 0755 tools/hwec-call tools/find_logo.sh $(DEST)/usr/lib/$(PKG)/
 	install -d $(DEST)/etc/modules-load.d

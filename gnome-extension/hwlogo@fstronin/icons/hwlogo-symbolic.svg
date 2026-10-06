@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LED glyph: a lit dot with four rays. Monochrome symbolic icon; the shell
+     recolours it like any other -symbolic icon. -->
+<svg height="16px" viewBox="0 0 16 16" width="16px" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#2e3436">
+        <circle cx="8" cy="8" r="2.6"/>
+        <rect x="7.25" y="1.2" width="1.5" height="2.6" rx="0.75"/>
+        <rect x="7.25" y="12.2" width="1.5" height="2.6" rx="0.75"/>
+        <rect x="1.2" y="7.25" width="2.6" height="1.5" rx="0.75"/>
+        <rect x="12.2" y="7.25" width="2.6" height="1.5" rx="0.75"/>
+    </g>
+</svg>

@@ -131,6 +131,7 @@ sudo apt install ./hwlogo_<version>_all.deb
 | `/usr/lib/udev/rules.d/90-hwlogo.rules` | grants group `plugdev` write access to `brightness` |
 | `/etc/modules-load.d/hwlogo.conf` | loads the module at boot |
 | `/usr/lib/systemd/system/hwlogo-restore.service` | optional: re-apply the state at boot |
+| `/usr/share/gnome-shell/extensions/hwlogo@fstronin/` | GNOME Shell extension: Quick Settings tile + panel indicator |
 | `/usr/lib/hwlogo/{hwec-call,find_logo.sh}` | debugging/re-discovery tools (need `acpi-call-dkms`) |
 | `/usr/share/doc/hwlogo/README.md` | this file |
 
@@ -153,6 +154,52 @@ Notes:
   `sudo systemctl enable --now hwlogo-restore.service`.
 * Module parameters (no rebuild needed, via `/etc/modprobe.d/`): `reg`
   (`0xA5`), `state_reg` (`0xA4`), `on_value` (`0x01`), `off_value` (`0x00`).
+
+## GNOME Shell integration
+
+The package installs the extension `hwlogo@fstronin` into
+`/usr/share/gnome-shell/extensions/`.  It adds
+
+* a **Quick Settings tile** (“Logo light”) — click it to switch the light, and
+* a small panel indicator that is visible while the light is on.
+
+Enable it once per user (the enabled/disabled state is per user, in dconf):
+
+```sh
+gnome-extensions enable hwlogo@fstronin
+```
+
+On Wayland a freshly installed extension is only picked up when the session
+starts, so log out and log back in once; the tile then shows up in the Quick
+Settings menu (top-right system menu), and the same menu is where you turn it
+off again.  The extension writes the LED device directly, so it needs no
+privileges beyond the `plugdev` udev rule.
+
+Installing the extension manually (without the package) means copying both the
+extension and its icon — the icon is looked up *by name*, so it has to live in
+an icon theme search path:
+
+```sh
+cp -r gnome-extension/hwlogo@fstronin ~/.local/share/gnome-shell/extensions/
+install -Dm644 gnome-extension/hwlogo@fstronin/icons/hwlogo-symbolic.svg \
+    ~/.local/share/icons/hicolor/symbolic/apps/hwlogo-symbolic.svg
+```
+
+Without the icon the tile falls back to a stock symbolic icon.
+
+Details:
+
+* `metadata.json` pins `shell-version` to the shell it was written for (50);
+  on another GNOME version add yours to that list.
+* The tile re-reads the hardware state every 2 s, so it also follows changes
+  made with `hwlogo(1)`, `brightnessctl` or anything else.
+* Sources: [`gnome-extension/hwlogo@fstronin/`](gnome-extension/hwlogo@fstronin);
+  the icon is our own symbolic `hwlogo-symbolic.svg` (no vendor artwork).
+
+### Keyboard shortcut instead of a tile
+
+Settings → Keyboard → *View and Customise Shortcuts* → **Custom Shortcuts** →
+**+**, name `Logo light`, command `hwlogo toggle`, then press the key you want.
 
 ## Uninstall
 

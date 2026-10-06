@@ -1,3 +1,13 @@
+hwlogo (1.1.0) unstable; urgency=medium
+
+  * New: GNOME Shell extension hwlogo@fstronin with a Quick Settings tile and
+    a panel indicator for the lid logo light.  Installed to
+    /usr/share/gnome-shell/extensions/, enabled per user with
+    "gnome-extensions enable hwlogo@fstronin" (one log out / log in on Wayland).
+  * README: GNOME integration and keyboard shortcut sections.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 02:20:00 +0200
+
 hwlogo (1.0.3) unstable; urgency=medium
 
   * Metadata only: the maintainer/author identity is now the real one

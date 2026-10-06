@@ -18,6 +18,11 @@ configure)
 		udevadm trigger --subsystem-match=leds || true
 	fi
 
+	# the GNOME extension finds its icon by name in the hicolor theme
+	if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+		gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+	fi
+
 	if ! modprobe "$DKMS_NAME" 2>/dev/null; then
 		echo "hwlogo: WARNING: module could not be loaded - the firmware method" >&2
 		echo "hwlogo: \\_SB.PC00.LPCB.HWEC.ECCD may not exist on this machine." >&2
