@@ -2,6 +2,7 @@
 debian/hwlogo/
 debian/files
 debian/*.substvars
+dist/
 *.deb
 *.buildinfo
 *.changes

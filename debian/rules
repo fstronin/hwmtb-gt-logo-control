@@ -20,6 +20,7 @@ install: build
 	chmod 0644 $(DEST)/usr/src/$(PKG)-$(VERSION)/dkms.conf
 	install -d $(DEST)/usr/bin
 	install -m 0755 bin/hwlogo $(DEST)/usr/bin/hwlogo
+	install -m 0755 scripts/hwlogo-healthcheck $(DEST)/usr/bin/hwlogo-healthcheck
 	install -d $(DEST)/usr/lib/udev/rules.d
 	install -m 0644 src/90-hwlogo.rules $(DEST)/usr/lib/udev/rules.d/90-hwlogo.rules
 	install -d $(DEST)/usr/lib/systemd/system

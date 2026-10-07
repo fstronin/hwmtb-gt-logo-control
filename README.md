@@ -21,12 +21,13 @@ EC[0xa4]=0x02
 | Laptop | HUAWEI MateBook GT 14, model `ENZH-XX`, board `ENZH-XX-PCB` |
 | BIOS | Insyde `1.16` (2025-07-22) |
 | Embedded controller | Microchip MEC1930 class |
-| OS | Ubuntu 26.04, kernel `7.0.0-30-generic` |
+| OS | Ubuntu 26.04, kernel `7.0.0-38-generic` (earlier builds on `7.0.0-30-generic`) |
 | Secure Boot | enabled, kernel `lockdown=integrity` (the module is MOK-signed) |
 
 Other MateBook generations very likely use the same EC register pair; verify
 before trusting it (`/usr/lib/hwlogo/hwec-call rd 0xa4`).
-Russian notes about the discovery process: [`docs/README.ru.md`](docs/README.ru.md).
+Discovery log: [`docs/discovery.md`](docs/discovery.md) (Russian original:
+[`docs/discovery.ru.md`](docs/discovery.ru.md)).
 
 ## Why this is not a five-line shell script
 
@@ -92,9 +93,17 @@ debhelper).  The kernel module itself is compiled **on the target machine** by
 DKMS, so the build host needs no kernel headers.
 
 ```sh
-git clone git@github.com:fstronin/hwmtb-gt-logo-control.git
+git clone https://github.com/fstronin/hwmtb-gt-logo-control.git
 cd hwmtb-gt-logo-control
-./build-deb.sh                 # -> ../hwlogo_<version>_all.deb
+./build-deb.sh                 # -> dist/hwlogo_<version>_all.deb
+```
+
+`scripts/` wraps this for the usual cases:
+
+```sh
+sudo ./scripts/install.sh --dry-run     # checks only: model, dpkg-dev/dkms, Secure Boot + MOK key
+sudo ./scripts/install.sh               # build + apt install + verification
+sudo ./scripts/uninstall.sh [--purge]   # remove
 ```
 
 The version is single-sourced from `debian/changelog` and substituted into
@@ -108,25 +117,30 @@ sudo apt install --reinstall ./hwlogo_<new-version>_all.deb
 Manual (non-packaged) install, if you prefer:
 
 ```sh
-sudo install -d /usr/src/hwlogo-1.0.2
-sudo install -m 0644 src/hwlogo.c src/Makefile /usr/src/hwlogo-1.0.2/
-sed 's/@VERSION@/1.0.2/' src/dkms.conf.in | sudo tee /usr/src/hwlogo-1.0.2/dkms.conf
-sudo dkms add -m hwlogo -v 1.0.2 && sudo dkms build -m hwlogo -v 1.0.2 \
-     && sudo dkms install -m hwlogo -v 1.0.2
-sudo cp src/90-hwlogo.rules /usr/lib/udev/rules.d/ && sudo udevadm control --reload-rules
-sudo modprobe hwlogo
+VER=$(dpkg-parsechangelog -S Version)                       # or set it by hand
+sudo install -d /usr/src/hwlogo-$VER
+sudo install -m 0644 src/hwlogo.c src/Makefile /usr/src/hwlogo-$VER/
+sed 's/@VERSION@/'"$VER"'/' src/dkms.conf.in | sudo tee /usr/src/hwlogo-$VER/dkms.conf
+sudo dkms add -m hwlogo -v "$VER" && sudo dkms build -m hwlogo -v "$VER" \
+     && sudo dkms install -m hwlogo -v "$VER"
+sudo install -m 0644 src/90-hwlogo.rules /usr/lib/udev/rules.d/
+sudo install -m 0755 bin/hwlogo scripts/hwlogo-healthcheck /usr/bin/
+sudo udevadm control --reload-rules && sudo modprobe hwlogo
 ```
 
 ## Install and use
 
 ```sh
-sudo apt install ./hwlogo_<version>_all.deb
+sudo ./scripts/install.sh        # build + install + verification (--dry-run first, if you like)
+# or, from a package you have already built:
+sudo apt install ./dist/hwlogo_<version>_all.deb
 ```
 
 | Path | Purpose |
 |---|---|
 | `/usr/src/hwlogo-<ver>/{hwlogo.c,Makefile,dkms.conf}` | module sources for DKMS |
 | `/usr/bin/hwlogo` | CLI: `on`, `off`, `toggle`, `status` |
+| `/usr/bin/hwlogo-healthcheck` | checks module/LED/EC state and the unit's `ExecStart` path; `--test` also toggles the light |
 | `/sys/class/leds/huawei::logo/{brightness,ec}` | standard LED interface |
 | `/usr/lib/udev/rules.d/90-hwlogo.rules` | grants group `plugdev` write access to `brightness` |
 | `/etc/modules-load.d/hwlogo.conf` | loads the module at boot |
@@ -154,6 +168,19 @@ Notes:
   `sudo systemctl enable --now hwlogo-restore.service`.
 * Module parameters (no rebuild needed, via `/etc/modprobe.d/`): `reg`
   (`0xA5`), `state_reg` (`0xA4`), `on_value` (`0x01`), `off_value` (`0x00`).
+
+## Health check
+
+```sh
+hwlogo-healthcheck          # module loaded and signed, LED device present, EC state sane,
+                            # systemd unit points at an installed binary
+hwlogo-healthcheck --test   # the same, plus an on/off round trip (the light moves briefly)
+```
+
+Exit status is 0 when everything is fine; otherwise every finding is printed as a
+`hwlogo: PROBLEM` list.  It needs no root (the udev rule gives the `plugdev` group
+access to the LED device); `--test` is a real functional test, so run it when a
+short blink is acceptable.
 
 ## GNOME Shell integration
 
@@ -204,8 +231,12 @@ Settings → Keyboard → *View and Customise Shortcuts* → **Custom Shortcuts*
 ## Uninstall
 
 ```sh
+sudo ./scripts/uninstall.sh [--purge]     # or:
 sudo apt purge hwlogo
 ```
+
+The light state lives in the EC and is deliberately left alone, so removing the
+package does not switch the logo off.
 
 ## Troubleshooting
 
@@ -231,6 +262,10 @@ dmesg | grep -i hwlogo                       # driver messages
 
   `0x01` = off, `0x02` = on.  If `ECCD` does not exist on your model, the
   register pair has to be re-discovered with `tools/find_logo.sh`.
+* **`hwlogo-restore.service` does not start** — look at the binary it runs:
+  `systemctl cat hwlogo-restore.service`.  Releases before 1.1.1 pointed `ExecStart`
+  at `/usr/local/bin/hwlogo`, which this package never installs (the CLI lives in
+  `/usr/bin/`); `hwlogo-healthcheck` reports exactly that mismatch.
 * **Wrong keyboard/other side effects** — none expected: the driver touches
   only `0xA5` (write) and `0xA4` (read).
 
@@ -246,6 +281,14 @@ dmesg | grep -i hwlogo                       # driver messages
    writable ones, then a batched search for the one that lights the logo.
 4. Shipped as a DKMS module behind a standard LED class device so the light can
    be driven by any LED-aware tooling, not only by this CLI.
+
+## Related projects
+
+* [`matebook-gt-14-linux`](https://github.com/fstronin/matebook-gt-14-linux) — the rest of this
+  laptop on Ubuntu 26.04: the fingerprint reader (Goodix GXFP5130), the camera (GalaxyCore GC2607
+  with a libcamera CCM tuning file and a virtual camera), Secure Boot/MOK notes, eGPU experiments.
+* [`gxfp5130-linux`](https://github.com/fstronin/gxfp5130-linux) — the upstream used for the
+  fingerprint stack (a fork: the `fdt-wait-up` fix for this firmware is PR #14 there).
 
 ## License
 

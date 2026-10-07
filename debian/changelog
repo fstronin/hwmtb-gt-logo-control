@@ -1,3 +1,19 @@
+hwlogo (1.1.1) unstable; urgency=medium
+
+  * Fix: hwlogo-restore.service ran /usr/local/bin/hwlogo, a path the package
+    never installs (it installs /usr/bin/hwlogo), so enabling the unit failed.
+    ExecStart is now /usr/bin/hwlogo, and hwlogo-healthcheck checks that the
+    unit's binary actually exists.
+  * New: scripts/ - one-command install (build + apt install + verification,
+    with --dry-run/--skip-build/--force), uninstall, and hwlogo-healthcheck
+    (module loaded and signed, LED device present, EC state sane, unit path
+    sane; --test additionally toggles the light and restores it).
+  * build-deb.sh now writes the package to dist/ instead of the parent directory.
+  * Docs: discovery notes in English (docs/discovery.md); the Russian original
+    is kept as docs/discovery.ru.md.
+
+ -- Yegor Chuperka <yegor-chuperka@yandex.ru>  Wed, 07 Oct 2026 22:40:00 +0200
+
 hwlogo (1.1.0) unstable; urgency=medium
 
   * New: GNOME Shell extension hwlogo@fstronin with a Quick Settings tile and

@@ -1,0 +1,93 @@
+#!/bin/sh
+# hwlogo-healthcheck - is the lid logo light stack still intact?
+#
+#   hwlogo-healthcheck           read-only checks (safe to run any time)
+#   hwlogo-healthcheck --test    also toggle the light and restore it
+#
+# Read-only checks catch the usual breakages: module not loaded (Secure Boot /
+# missing MOK signature), LED class device gone, EC state register unreadable or
+# out of range, and the classic packaging mistake - a systemd unit whose
+# ExecStart points at a binary that nothing installs.
+#
+# Exit status: 0 = OK, 1 = problem (message lists what is wrong).
+set -u
+
+LED=/sys/class/leds/huawei::logo
+UNIT=/usr/lib/systemd/system/hwlogo-restore.service
+KREL=$(uname -r)
+TEST=0
+[ "${1:-}" = "--test" ] && TEST=1
+
+msg=''
+add() { msg="$msg
+  - $1"; }
+
+# --- 1. module loaded and signed ------------------------------------------
+if lsmod | grep -q '^hwlogo '; then
+	:
+else
+	add "module hwlogo is not loaded (sudo modprobe hwlogo; dmesg | grep hwlogo)"
+fi
+
+ko=$(ls /lib/modules/"$KREL"/updates/dkms/hwlogo.ko* 2>/dev/null | head -1)
+if [ -n "$ko" ]; then
+	if [ -z "$(modinfo -F signer "$ko" 2>/dev/null)" ]; then
+		add "module is not signed ($ko) - with Secure Boot on the kernel will refuse it"
+	fi
+else
+	add "no hwlogo.ko for kernel $KREL (dkms status | grep hwlogo)"
+fi
+
+# --- 2. LED class device and EC state register ----------------------------
+if [ -e "$LED/brightness" ]; then
+	:
+else
+	add "$LED/brightness is missing - the LED device was not registered"
+fi
+
+if [ -r "$LED/ec" ]; then
+	ec=$(cat "$LED/ec" 2>/dev/null)
+	case "$ec" in
+	"EC[0xa4]=0x01"|"EC[0xa4]=0x02") ;;
+	*) add "unexpected EC state: ${ec:-<empty>} (expected EC[0xa4]=0x01 or 0x02)" ;;
+	esac
+else
+	add "$LED/ec is not readable - the EC method \\_SB.PC00.LPCB.HWEC.ECCD may be missing here"
+fi
+
+# --- 3. packaging sanity: the unit must point at an installed binary -------
+if [ -f "$UNIT" ]; then
+	exe=$(sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' "$UNIT" | head -1)
+	case "$exe" in
+	"") add "$UNIT has no ExecStart line" ;;
+	*) [ -x "$exe" ] || add "$UNIT runs $exe, which is not installed" ;;
+	esac
+fi
+
+# --- 4. optional round trip (moves the actual light) ----------------------
+if [ "$TEST" = 1 ] && [ -z "$msg" ] && [ -w "$LED/brightness" ]; then
+	before=$(cat "$LED/brightness" 2>/dev/null)
+	printf '1' > "$LED/brightness" 2>/dev/null
+	sleep 0.3
+	on=$(cat "$LED/ec" 2>/dev/null)
+	printf '0' > "$LED/brightness" 2>/dev/null
+	sleep 0.3
+	off=$(cat "$LED/ec" 2>/dev/null)
+	[ "$before" = "0" ] || printf '1' > "$LED/brightness" 2>/dev/null
+	case "$on" in *0x02) ;; *) add "--test: light did not turn on (ec=$on)" ;; esac
+	case "$off" in *0x01) ;; *) add "--test: light did not turn off (ec=$off)" ;; esac
+elif [ "$TEST" = 1 ] && [ ! -w "$LED/brightness" ]; then
+	add "--test needs write access to $LED/brightness (group plugdev; see 90-hwlogo.rules)"
+fi
+
+if [ -z "$msg" ]; then
+	if [ "$TEST" = 1 ]; then
+		echo "hwlogo: OK - module signed and loaded, LED device present, on/off round trip works"
+	else
+		echo "hwlogo: OK - module signed and loaded, LED device present, EC state sane"
+	fi
+	exit 0
+fi
+
+printf 'hwlogo: PROBLEM%s\n' "$msg"
+exit 1
