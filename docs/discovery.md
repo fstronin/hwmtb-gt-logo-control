@@ -10,7 +10,7 @@ It installs as an ordinary Debian/Ubuntu package: the DKMS module is built
 locally and signed with your MOK key (Secure Boot can stay enabled).
 
 ```
-sudo apt install ./hwlogo_1.0.1_all.deb
+sudo apt install ./dist/hwlogo_<version>_all.deb
 
 hwlogo on        # turn on
 hwlogo off       # turn off
